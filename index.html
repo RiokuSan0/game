@@ -1,23 +1,307 @@
 <!DOCTYPE html>
 <html lang="ar">
 <head>
-  <meta charset="UTF-8">
-  <title>اختبار اللعبة</title>
-  <style>
-    body {
-      margin: 0;
-      background: green;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-      color: white;
-      font-size: 30px;
-      font-family: Arial;
-    }
-  </style>
+<meta charset="UTF-8">
+<title>رسالتي لصغيرتي ❤️</title>
+
+<style>
+*{box-sizing:border-box;font-family:Cairo,sans-serif}
+body{margin:0;overflow:hidden;background:#000;touch-action:none}
+
+/* VIEWPORT */
+#viewport{width:100vw;height:100vh;overflow:hidden;position:relative}
+
+/* BACKGROUND */
+#bg{
+  position:absolute;
+  top:0;left:0;
+  width:5200px;
+  height:100%;
+  background:url("https://i.imgur.com/L2VGPX4.jpeg") center/cover no-repeat;
+  transform:scale(1.15);
+}
+
+/* WORLD */
+#world{
+  position:absolute;
+  bottom:0;
+  width:4800px;
+  height:100%;
+}
+
+/* GROUND — GREEN GRASS */
+#ground{
+  position:absolute;
+  bottom:0;
+  width:100%;
+  height:170px;
+  background:
+    linear-gradient(#4caf50,#2e7d32);
+  box-shadow:inset 0 8px 0 rgba(255,255,255,.15);
+}
+
+/* PLAYER */
+#player{
+  position:absolute;
+  bottom:170px;
+  left:120px;
+  width:72px;
+  height:72px;
+  background:url("https://i.imgur.com/bsB0WVm.png") center/contain no-repeat;
+}
+
+/* DOORS — BIG + ON GROUND */
+.door{
+  position:absolute;
+  bottom:170px;
+  width:130px;
+  height:170px;
+  background:url("https://i.imgur.com/u6eamGM.png") center/contain no-repeat;
+  background-size:contain;
+  font-size:0;
+  transition:
+    transform .5s ease,
+    opacity .5s ease;
+}
+.door.hide{
+  transform:scale(.3) rotate(20deg);
+  opacity:0;
+  pointer-events:none;
+}
+
+/* UI */
+#ui{
+  position:fixed;
+  top:10px;
+  right:10px;
+  color:#fff;
+  font-size:18px;
+  z-index:10;
+}
+
+/* CONTROLS — LEFT */
+#controls{
+  position:fixed;
+  bottom:25px;
+  left:20px;
+  display:flex;
+  gap:20px;
+  z-index:10;
+}
+.ctrl{
+  width:80px;
+  height:80px;
+  border-radius:50%;
+  font-size:32px;
+  border:none;
+}
+
+/* QUIZ */
+#quiz{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.75);
+  display:none;
+  justify-content:center;
+  align-items:center;
+  z-index:30;
+}
+#quizBox{
+  background:#111;
+  padding:22px;
+  width:88%;
+  max-width:420px;
+  border-radius:18px;
+  color:#fff;
+  text-align:center;
+}
+#quizBox input{
+  width:100%;
+  padding:12px;
+  margin:14px 0;
+  border-radius:10px;
+  border:none;
+}
+
+/* FINAL MESSAGE */
+#finalMessage{
+  position:fixed;
+  inset:0;
+  background:radial-gradient(circle,#3b004f,#000);
+  display:none;
+  justify-content:center;
+  align-items:center;
+  z-index:999;
+}
+#finalBox{
+  background:rgba(0,0,0,.65);
+  padding:30px;
+  border-radius:22px;
+  color:#fff;
+  max-width:520px;
+  text-align:center;
+  line-height:1.9;
+}
+</style>
 </head>
+
 <body>
-  🎮 اللعبة شغالة!
+
+<audio autoplay loop>
+  <source src="https://cdn.pixabay.com/audio/2023/03/14/audio_9e20d6b4d6.mp3">
+</audio>
+
+<div id="viewport">
+  <div id="bg"></div>
+  <div id="world">
+    <div id="player"></div>
+    <div id="ground"></div>
+  </div>
+</div>
+
+<div id="ui">الأبواب المفتوحة: <span id="opened">0</span>/20</div>
+
+<div id="controls">
+  <button class="ctrl" id="left">◀</button>
+  <button class="ctrl" id="right">▶</button>
+</div>
+
+<div id="quiz">
+  <div id="quizBox">
+    <div id="question"></div>
+    <input id="answer" placeholder="اكتبي إجابتك ❤️">
+    <button id="submit">فتح الباب</button>
+  </div>
+</div>
+
+<div id="finalMessage">
+  <div id="finalBox">
+    ❤️ إلى صغيرتي ❤️<br><br>
+    بحبك بجد من كل قلبي<br>
+    شكرًا عشان انتي في حياتي وحياتي ذات نفسها<br>
+    وكل عيد وانتي عيدي<br>
+    وكل عيد حب وانتي حبيبتي وحياتي<br>
+    بحبك حب محدش يتخيله لدرجة الهوس<br>
+    شكرًا لكل حاجة عملتيها عشاني يا صغيرتي<br>
+    وعايزك تعرفي إني دايمًا فخور بيكي ❤️
+  </div>
+</div>
+
+<script>
+const player=document.getElementById("player");
+const world=document.getElementById("world");
+const bg=document.getElementById("bg");
+const openedEl=document.getElementById("opened");
+
+let x=120, speed=4, dir=0;
+let opened=0, quizOpen=false, currentDoor=null;
+
+/* QUESTIONS */
+const questions=[
+"إمتى أول مرة دخلنا مكالمة مع بعض؟",
+"ما هو تاريخ ارتباطنا؟",
+"تعرفي إني بحبك وبموت فيكي لدرجة الهوس ولا عندك شك؟",
+"ما هو أعلى عدد ساعات قعدنا مكالمة؟",
+"ما هي أفضل رواية حسبناها سوا؟",
+"سؤال مني ليكي: بتحسي إيه أول ما تسمعي صوتي؟",
+"ايه أكتر أكلة أنا بحبها؟",
+"بتحبيني؟",
+"فاكرة أول مرة ضحكنا سوا؟",
+"إيه أكتر حاجة بتفكرك بيا؟",
+"لو زعلتي أعملك إيه؟",
+"إيه موقف حسّسك بالأمان؟",
+"بتحبي فيا إيه؟",
+"لو رجع الزمن تختاريني؟",
+"أكتر كلمة بتحبيها مني؟",
+"نفسك نكمل سوا؟",
+"أنا بالنسبالك إيه؟",
+"تحبي نعيش فين سوا؟",
+"لو قلبي اتغلب، أعمل إيه؟",
+"جاهزة للنهاية؟ ❤️"
+];
+
+const answers=[
+"", "7/16", "لا", "7", "005", "",
+"مكرونه بشاميل|بشاميل|بشمل", "اه",
+"", "", "", "", "", "", "", "", "", "", "", ""
+];
+
+/* DOORS */
+for(let i=0;i<20;i++){
+  const d=document.createElement("div");
+  d.className="door";
+  d.style.left=(650+i*190)+"px";
+  d.dataset.i=i;
+  world.appendChild(d);
+}
+
+/* LOOP */
+function loop(){
+  if(!quizOpen){
+    x+=dir*speed;
+    if(x<0)x=0;
+    if(x>4600)x=4600;
+  }
+  player.style.left=x+"px";
+  const cam=x-innerWidth/2;
+  world.style.transform=`translateX(${-cam}px)`;
+  bg.style.transform=`translateX(${-cam*0.18}px) scale(1.15)`;
+
+  const pc=x+36;
+  document.querySelectorAll(".door").forEach(d=>{
+    if(d.classList.contains("hide"))return;
+    const dc=d.offsetLeft+65;
+    if(Math.abs(dc-pc)<80&&!quizOpen)openQuiz(d);
+  });
+
+  requestAnimationFrame(loop);
+}
+loop();
+
+/* QUIZ */
+const quiz=document.getElementById("quiz");
+const q=document.getElementById("question");
+const a=document.getElementById("answer");
+
+function openQuiz(d){
+  quizOpen=true;
+  dir=0;
+  currentDoor=d;
+  quiz.style.display="flex";
+  q.textContent=questions[d.dataset.i];
+  a.value="";
+  a.focus();
+}
+
+submit.onclick=()=>{
+  const idx=currentDoor.dataset.i;
+  const correct=answers[idx];
+  const user=a.value.trim();
+  if(correct!==""&&!correct.split("|").some(v=>user.includes(v))){
+    alert("فكري شوية ❤️");return;
+  }
+  quiz.style.display="none";
+  quizOpen=false;
+  currentDoor.classList.add("hide");
+  opened++;
+  openedEl.textContent=opened;
+  if(opened===20)setTimeout(()=>finalMessage.style.display="flex",900);
+};
+
+/* CONTROLS */
+function stop(){dir=0}
+left.onpointerdown=()=>dir=-1;
+right.onpointerdown=()=>dir=1;
+left.onpointerup=stop;
+right.onpointerup=stop;
+left.onpointerleave=stop;
+right.onpointerleave=stop;
+document.onkeydown=e=>{
+  if(e.key==="ArrowLeft")dir=-1;
+  if(e.key==="ArrowRight")dir=1;
+};
+document.onkeyup=stop;
+</script>
+
 </body>
 </html>
